@@ -40,5 +40,24 @@ namespace NewsClassification.Models
     {
         [ColumnName("PredictedLabel")]
         public string PredictedCategory { get; set; }
+
+        public float[] Score { get; set; }
+    }
+
+    /// <summary>
+    /// property of MS- GithubLabeler
+    /// </summary>
+    public class FullPrediction
+    {
+        public string PredictedLabel;
+        public float Score;
+        public int OriginalSchemaIndex;
+
+        public FullPrediction(string predictedLabel, float score, int originalSchemaIndex)
+        {
+            PredictedLabel = predictedLabel;
+            Score = score;
+            OriginalSchemaIndex = originalSchemaIndex;
+        }
     }
 }

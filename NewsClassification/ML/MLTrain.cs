@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using Microsoft.ML;
+using Microsoft.ML.Data;
 using NewsClassification.Models;
 
 namespace NewsClassification.ML
@@ -86,10 +88,66 @@ namespace NewsClassification.ML
             _predictionEngine = _mlContext.Model.CreatePredictionEngine<Article, CategoryPrediction>(loadedModel);
 
             var prediction = _predictionEngine.Predict(singleArticle);
+
+            FullPrediction[] predictions;
+            float[] scores = prediction.Score;
+            int size = scores.Length;
+            int index0, index1, index2 = 0;
+
+            VBuffer<ReadOnlyMemory<char>> slotNames = default;
+            _predictionEngine.OutputSchema[nameof(CategoryPrediction.Score)].GetSlotNames(ref slotNames);
+
+            GetIndexesOfTopThreeScores(scores, size, out index0, out index1, out index2);
+
+            predictions = new FullPrediction[]
+            {
+                new FullPrediction(slotNames.GetItemOrDefault(index0).ToString(),scores[index0],index0),
+                new FullPrediction(slotNames.GetItemOrDefault(index1).ToString(),scores[index1],index1),
+                new FullPrediction(slotNames.GetItemOrDefault(index2).ToString(),scores[index2],index2)
+            };
+
             Console.WriteLine("Predicted the given article's category:");
             Console.WriteLine($"- With title: {singleArticle.Headline}\n");
             Console.WriteLine($"- With description: {singleArticle.short_description}\n");
             Console.WriteLine($"=============== and prediction: {prediction.PredictedCategory} ===============");
+        }
+
+        private void GetIndexesOfTopThreeScores(float[] scores, int n, out int index0, out int index1, out int index2)
+        {
+            int i;
+            float first, second, third;
+            index0 = index1 = index2 = 0;
+            if (n < 3)
+            {
+                Console.WriteLine("Invalid Input");
+                return;
+            }
+            third = first = second = 000;
+            for (i = 0; i < n; i++)
+            {
+                // If current element is  
+                // smaller than first 
+                if (scores[i] > first)
+                {
+                    third = second;
+                    second = first;
+                    first = scores[i];
+                }
+                // If arr[i] is in between first 
+                // and second then update second 
+                else if (scores[i] > second)
+                {
+                    third = second;
+                    second = scores[i];
+                }
+
+                else if (scores[i] > third)
+                    third = scores[i];
+            }
+            var scoresList = scores.ToList();
+            index0 = scoresList.IndexOf(first);
+            index1 = scoresList.IndexOf(second);
+            index2 = scoresList.IndexOf(third);
         }
 
         private void Evaluate(DataViewSchema trainingDataViewSchema, IDataView testData)
